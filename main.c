@@ -2,12 +2,15 @@
 
 #include <stdio.h>
 
+#include "list.h"
+
 #define SCREEN_WIDTH 600
 #define SCREEN_HEIGHT 800
 
 #define PLAYER_WIDTH 24
 #define PLAYER_HEIGHT 24
 
+#define ENEMY_MOVEMENT_SPEED 100
 #define PLAYER_MOVEMENT_SPEED 400
 
 SDL_Window* window;
@@ -36,9 +39,17 @@ struct Player player;
 
 struct Enemy {
     pos_t pos;
+    pos_t speed;
+
+    // Time until next bullet
+    double bulletTimer;
+    // Time between bullets
+    double bulletFrequency;
 };
 
 const unsigned char* keysPressed;
+
+struct list* enemyList;
 
 // Put game logic code in here
 // e.g. player or enemy movement
@@ -67,6 +78,18 @@ void update() {
     if(keysPressed[SDL_SCANCODE_D]) {
         player.pos.x += PLAYER_MOVEMENT_SPEED * timeElapsed;
     }
+
+    for(struct list_node* enemyNode = enemyList->head; enemyNode != NULL; enemyNode = enemyNode->next) {
+        struct Enemy* e = (struct Enemy*)enemyNode->value;
+
+        e->pos.x += timeElapsed * e->speed.x;
+        e->pos.y += timeElapsed * e->speed.y;
+
+        e->bulletTimer -= timeElapsed;
+        if(e->bulletTimer <= 0) {
+            e->bulletTimer = e->bulletFrequency;
+        }
+    }
 }
 
 // Draw sprites here
@@ -87,6 +110,19 @@ void draw() {
     // and figure out what they do
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_RenderFillRect(renderer, &playerRect);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    for(struct list_node* enemyNode = enemyList->head; enemyNode != NULL; enemyNode = enemyNode->next) {
+        struct Enemy* e = (struct Enemy*)enemyNode->value;
+
+        SDL_Rect enemyRect = {
+            e->pos.x - PLAYER_WIDTH / 2,
+            e->pos.y - PLAYER_HEIGHT / 2,
+            PLAYER_WIDTH,
+            PLAYER_HEIGHT
+        };
+        SDL_RenderFillRect(renderer, &enemyRect);
+    }
 }
 
 // By putting this in a function, first of all the code is cleaner as each logical task has its own function
@@ -98,6 +134,13 @@ void player_init() {
     player.lives = 3;
 }
 
+struct Enemy* spawn_enemy() {
+    struct Enemy* e = (struct Enemy*)malloc(sizeof(struct Enemy));
+
+    list_add_back(enemyList, e);
+    return e;
+}
+
 int main() {
     SDL_Init(SDL_INIT_EVERYTHING);
     if(SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &window, &renderer)) {
@@ -107,7 +150,17 @@ int main() {
 
     timeSinceStart = SDL_GetTicks64();
 
+    enemyList = list_create();
+
     player_init();
+
+    struct Enemy* e = spawn_enemy();
+    e->pos.y = 50;
+    e->pos.x = 0;
+    e->speed.x = ENEMY_MOVEMENT_SPEED;
+    e->speed.y = 10;
+    e->bulletFrequency = 1;
+    e->bulletTimer = e->bulletFrequency;
 
     int isRunning = 1;
     while(isRunning) {

@@ -1,19 +1,6 @@
+#include "list.h"
+
 #include <stdlib.h>
-#include <stdio.h>
-
-struct list {
-    struct list_node* head;
-    struct list_node* tail;
-
-    unsigned int count;
-};
-
-struct list_node {
-    int value;
-
-    struct list_node* next;
-    struct list_node* prev;
-};
 
 struct list* list_create() {
     struct list* l = (struct list*)malloc(sizeof(struct list));
@@ -34,7 +21,7 @@ struct list_node* list_node_create() {
     return node;
 }
 
-void list_add_back(struct list* list, int value) {
+void list_add_back(struct list* list, void* value) {
     struct list_node* node = list_node_create();
     if(list->tail) { // Case 1: List is not empty
         // The old tail points to our new node in the list
@@ -80,7 +67,7 @@ void list_remove(struct list* list, struct list_node* node) {
 }
 
 // This function finds the FIRST occurance of value in the list
-struct list_node* list_find(struct list* list, int value) {
+struct list_node* list_find(struct list* list, void* value) {
     for(struct list_node* node = list->head; node != NULL; node = node->next) {
         if(node->value == value) {
             return node;
@@ -89,42 +76,4 @@ struct list_node* list_find(struct list* list, int value) {
 
     // No item in list with the right value
     return NULL;
-}
-
-void list_print(struct list* list) {
-    printf("List contents (%i items): ", list->count);
-
-    for(struct list_node* node = list->head; node != NULL; node = node->next) {
-        printf("%i ", node->value);
-    }
-
-    printf("\n");
-}
-
-int main() {
-    struct list* list = list_create();
-
-    list_print(list);
-
-    list_add_back(list, 42);
-    list_add_back(list, -1);
-    list_add_back(list, 4096);
-    list_add_back(list, 177);
-    list_add_back(list, 86);
-
-    list_print(list);
-
-    struct list_node* n = list_find(list, 4096);
-    if(n)
-        list_remove(list, n);
-
-    list_print(list);
-
-    n = list_find(list, 42);
-    if(n)
-        list_remove(list, n);
-
-    list_print(list);
-
-    return 0;
 }
